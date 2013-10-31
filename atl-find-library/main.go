@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 var g_libpaths []string
@@ -24,14 +24,14 @@ func path_exists(name string) bool {
 // sysLibName returns the OS-native library name from an OS-independant one
 func sysLibName(name string) string {
 	prefix := map[string]string{
-		"linux": "lib",
-		"darwin": "lib",
+		"linux":   "lib",
+		"darwin":  "lib",
 		"windows": "",
 	}[runtime.GOOS]
 
 	suffix := map[string]string{
-		"linux": ".so",
-		"darwin":".dyld",
+		"linux":   ".so",
+		"darwin":  ".dyld",
 		"windows": ".dll",
 	}[runtime.GOOS]
 
@@ -76,13 +76,12 @@ func main() {
 
 	if len(os.Args) <= 1 {
 		fmt.Fprintf(
-			os.Stderr, 
+			os.Stderr,
 			"**error** atl-find-library takes at least one argument\nex:\n%s\n",
 			"$ atl-find-library AthenaServices",
 		)
 		os.Exit(1)
 	}
-
 
 	allGood := true
 	libnames := append([]string{}, os.Args[1:]...)
@@ -91,8 +90,8 @@ func main() {
 		lib := findLib(libname)
 		if lib == "" {
 			fmt.Fprintf(
-				os.Stderr, 
-				"**error** could not locate library [%s]\n", 
+				os.Stderr,
+				"**error** could not locate library [%s]\n",
 				libname,
 			)
 			allGood = false
