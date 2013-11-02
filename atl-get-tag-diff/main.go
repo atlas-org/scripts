@@ -36,6 +36,7 @@ options:
 	switch flag.NArg() {
 	default:
 		fmt.Fprintf(os.Stderr, "**error** you need to give 2 releases/nightlies setup-strings\n")
+		fmt.Fprintf(os.Stderr, "**error** got [%d]: %v\n", flag.NArg(), flag.Args())
 		flag.Usage()
 		os.Exit(1)
 	case 2:
