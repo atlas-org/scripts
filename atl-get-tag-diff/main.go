@@ -2,8 +2,8 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/atlas-org/cmt"
@@ -26,7 +26,7 @@ options:
 			os.Args[0], os.Args[0], os.Args[0],
 		)
 		flag.PrintDefaults()
-		
+
 	}
 	flag.Parse()
 
