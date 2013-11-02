@@ -11,6 +11,23 @@ import (
 
 func main() {
 	v := flag.Bool("v", false, "enable verbose mode")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		fmt.Fprintf(
+			os.Stderr,
+			`$ %s [options] old-setup new-setup
+
+ex:
+ $ %s rel1,devval rel2,devval
+ $ %s 19.0.0 rel2,devval
+
+options:
+`,
+			os.Args[0], os.Args[0], os.Args[0],
+		)
+		flag.PrintDefaults()
+		
+	}
 	flag.Parse()
 
 	old := ""
