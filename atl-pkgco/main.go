@@ -73,7 +73,89 @@ type response struct {
 }
 
 func main() {
-	fmt.Printf("::: atl-pkgco...\n")
+	flag.Parse()
+
+	if *g_fname == "" && flag.NArg() <= 0 {
+		errorf("you need to give a package name or a file containing a list of packages\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	pkgs := make([]string, 0)
+	if *g_fname != "" {
+		f, err := os.Open(*g_fname)
+		if err != nil {
+			errorf("could not open file [%s]: %v\n", *g_fname, err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		scan := bufio.NewScanner(f)
+		for scan.Scan() {
+			pkgs = append(pkgs, scan.Text())
+		}
+		err = scan.Err()
+		if err != nil {
+			errorf("problem parsing file [%s]: %v\n", *g_fname, err)
+			os.Exit(1)
+		}
+	} else {
+		pkgs = append(pkgs, flag.Args()...)
+	}
+
+	ch := make(chan response)
+	for _, pkg := range pkgs {
+		go checkout(pkg, ch)
+	}
+
+	errs := []response{}
+	for _ = range pkgs {
+		resp := <-ch
+		if resp.err != nil {
+			errs = append(errs, resp)
+		}
+	}
+	close(ch)
+
+	if len(errs) != 0 {
+		errorf("problem(s) checking out package(s):\n")
+		for _, err := range errs {
+			errorf("%s (%s): %v\n", err.pkg, err.tag, err.err)
+		}
+		os.Exit(1)
+	}
+}
+
+func checkout(pkg string, ch chan response) {
+	var err error
+	tag := ""
+	// if - in pkg, tag was given
+	if strings.Count(pkg, "-") > 0 {
+		tag = filepath.Base(pkg)
+		pkg = strings.SplitN(pkg, "-", 1)[0]
+	}
+	
+	// if no '/' in pkg, need to find full package name
+	if strings.Count(pkg, "/") <= 0 {
+		p, err := cmt.Package(pkg)
+		if err != nil {
+			ch <- response{pkg, tag, err}
+			return
+		}
+		pkg = p.Name
+	}
+
+	// remove leading '/' for cmt
+	pkg = strings.TrimLeft(pkg, "/")
+	
+	// special case of Gaudi packages
+	if strings.HasPrefix(pkg, "Gaudi") {
+		
+		return
+	}
+
+	// atlasoff packages
+	debugf("checkout: %s (%s)\n", pkg, tag)
+	ch <- response{pkg, tag, err}
 }
 
 // EOF
