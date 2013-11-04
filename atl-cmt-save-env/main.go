@@ -34,11 +34,6 @@ func main() {
 	}
 	defer setup.Delete()
 
-	cmt, err := gocmt.New(setup)
-	if err != nil {
-		panic(err)
-	}
-
 	if *g_verbose {
 		fmt.Printf("::: storing CMT environment into [%s]...\n", *g_fname)
 	}
