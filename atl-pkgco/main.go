@@ -2,14 +2,14 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"flag"
-	"log"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	gocmt "github.com/atlas-org/cmt"
+	"github.com/gonuts/logger"
 )
 
 var g_fname = flag.String("f", "", "file containing package names/tags to checkout")
@@ -20,7 +20,7 @@ var g_checkout = true
 
 var cmt *gocmt.Cmt
 
-var msg = log.New(os.Stderr, "pkgco ", 0)
+var msg = logger.New("pkgco")
 
 func init() {
 	flag.Usage = func() {
@@ -51,19 +51,19 @@ options:
 }
 
 func errorf(format string, args ...interface{}) {
-	msg.Printf("ERROR    "+format, args...)
+	msg.Errorf(format, args...)
 }
 
 func warnf(format string, args ...interface{}) {
-	msg.Printf("WARNING  "+format, args...)
+	msg.Warnf(format, args...)
 }
 
 func infof(format string, args ...interface{}) {
-	msg.Printf("INFO     "+format, args...)
+	msg.Infof(format, args...)
 }
 
 func debugf(format string, args ...interface{}) {
-	msg.Printf("DEBUG    "+format, args...)
+	msg.Debugf(format, args...)
 }
 
 type response struct {
@@ -133,7 +133,7 @@ func checkout(pkg string, ch chan response) {
 		tag = filepath.Base(pkg)
 		pkg = strings.SplitN(pkg, "-", 1)[0]
 	}
-	
+
 	// if no '/' in pkg, need to find full package name
 	if strings.Count(pkg, "/") <= 0 {
 		p, err := cmt.Package(pkg)
@@ -146,10 +146,10 @@ func checkout(pkg string, ch chan response) {
 
 	// remove leading '/' for cmt
 	pkg = strings.TrimLeft(pkg, "/")
-	
+
 	// special case of Gaudi packages
 	if strings.HasPrefix(pkg, "Gaudi") {
-		
+
 		return
 	}
 
