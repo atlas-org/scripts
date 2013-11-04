@@ -56,7 +56,7 @@ func main() {
 
 	export := map[string]string{
 		"sh":  "export",
-		"csh": "set",
+		"csh": "setenv",
 	}[*g_shell]
 
 	eq := map[string]string{
@@ -70,6 +70,7 @@ func main() {
 		}
 		_, err = fmt.Fprintf(out, fmt.Sprintf("%s %s%s%q\n", export, k, eq, v))
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "**error** for key=%q value=%q\n", k, v)
 			fmt.Fprintf(
 				os.Stderr, "**error** generating shell script [%s]: %v\n",
 				*g_fname,
