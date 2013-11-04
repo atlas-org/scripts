@@ -147,6 +147,19 @@ func checkout(pkg string, ch chan response) {
 
 	// special case of Gaudi packages
 	if strings.HasPrefix(pkg, "Gaudi") {
+		env := os.Environ()
+		gaudisvn := os.Getenv("GAUDISVN")
+		if gaudisvn == "" {
+			gaudisvn = "http://svnweb.cern.ch/guest/gaudi"
+			env = append(env, "GAUDISVN="+gaudisvn)
+		}
+		svnroot := gaudisvn + "/Gaudi"
+		svntrunk := "trunk"
+		svntags := "tags"
+		env = append(env, "SVNROOT="+svnroot)
+		env = append(env, "SVNTRUNK="+svntrunk)
+		env = append(env, "SVNTAGS="+svntags)
+		env = append(env, "pkg="+pkg)
 
 		return
 	}
