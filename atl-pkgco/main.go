@@ -129,7 +129,7 @@ func checkout(pkg string, ch chan response) {
 	// if - in pkg, tag was given
 	if strings.Count(pkg, "-") > 0 {
 		tag = filepath.Base(pkg)
-		pkg = strings.SplitN(pkg, "-", 1)[0]
+		pkg = strings.SplitN(pkg, "-", 2)[0]
 	}
 
 	// if no '/' in pkg, need to find full package name
