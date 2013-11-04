@@ -10,6 +10,7 @@ import (
 )
 
 var g_verbose = flag.Bool("v", false, "enable verbose output")
+var g_dir = flag.String("d", ".", "directory to relocate the environment to")
 var g_fname = flag.String("f", "store.cmt", "path to file to load the environment from")
 var g_oname = flag.String("o", "", "shell file to hold the environment")
 var g_shell = flag.String("sh", "sh", "shell type (sh|csh)")
@@ -31,6 +32,17 @@ func main() {
 	}
 
 	var err error
+
+	if *g_dir == "." {
+		*g_dir, err = os.Getwd()
+		if err != nil {
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "**error** getting workdir: %v\n", err)
+				os.Exit(1)
+			}
+		}
+	}
+
 	var out io.Writer = os.Stdout
 	if *g_oname != "" {
 		if *g_oname == "-" {
@@ -47,7 +59,7 @@ func main() {
 		}
 	}
 
-	setup, err := gocmt.NewSetupFromCache(*g_fname, *g_verbose)
+	setup, err := gocmt.NewSetupFromCache(*g_fname, *g_dir, *g_verbose)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "**error** opening cache [%s]: %v\n", *g_fname, err)
 		os.Exit(1)
