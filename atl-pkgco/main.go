@@ -198,7 +198,6 @@ func checkout(pkg string, ch chan response) {
 				var istrunk bool
 				head, err := cmt.LatestPackageTag(pkg)
 				if err != nil {
-					msg.Errorf(">>> %s\n", err)
 					istrunk = false
 					head = "NONE"
 				} else {
