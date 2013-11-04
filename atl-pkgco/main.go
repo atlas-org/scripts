@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -45,25 +47,9 @@ options:
 	var err error
 	cmt, err = gocmt.New(nil)
 	if err != nil {
-		errorf("could not initialize Cmt instance: %v\n", err)
-		//os.Exit(1)
+		msg.Errorf("could not initialize Cmt instance: %v\n", err)
+		os.Exit(1)
 	}
-}
-
-func errorf(format string, args ...interface{}) {
-	msg.Errorf(format, args...)
-}
-
-func warnf(format string, args ...interface{}) {
-	msg.Warnf(format, args...)
-}
-
-func infof(format string, args ...interface{}) {
-	msg.Infof(format, args...)
-}
-
-func debugf(format string, args ...interface{}) {
-	msg.Debugf(format, args...)
 }
 
 type response struct {
@@ -76,33 +62,45 @@ func main() {
 	flag.Parse()
 
 	if *g_fname == "" && flag.NArg() <= 0 {
-		errorf("you need to give a package name or a file containing a list of packages\n")
+		msg.Errorf("you need to give a package name or a file containing a list of packages\n")
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	if *g_dry || *g_recent {
+		g_checkout = false
 	}
 
 	pkgs := make([]string, 0)
 	if *g_fname != "" {
 		f, err := os.Open(*g_fname)
 		if err != nil {
-			errorf("could not open file [%s]: %v\n", *g_fname, err)
+			msg.Errorf("could not open file [%s]: %v\n", *g_fname, err)
 			os.Exit(1)
 		}
 		defer f.Close()
 		scan := bufio.NewScanner(f)
 		for scan.Scan() {
+			txt := strings.Trim(scan.Text(), " \r\n")
+			if strings.HasPrefix(txt, "#") {
+				continue
+			}
 			pkgs = append(pkgs, scan.Text())
 		}
 		err = scan.Err()
 		if err != nil {
-			errorf("problem parsing file [%s]: %v\n", *g_fname, err)
+			msg.Errorf("problem parsing file [%s]: %v\n", *g_fname, err)
 			os.Exit(1)
 		}
 	} else {
 		pkgs = append(pkgs, flag.Args()...)
 	}
 
-	ch := make(chan response)
+	nch := len(pkgs)
+	if nch > 8 {
+		nch = 8
+	}
+	ch := make(chan response, len(pkgs))
 	for _, pkg := range pkgs {
 		go checkout(pkg, ch)
 	}
