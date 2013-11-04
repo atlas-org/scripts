@@ -161,6 +161,64 @@ func checkout(pkg string, ch chan response) {
 		env = append(env, "SVNTAGS="+svntags)
 		env = append(env, "pkg="+pkg)
 
+		args := []string{"co"}
+		if *g_head {
+			args = append(
+				args,
+				fmt.Sprintf("%s/%s/%s", svnroot, svntrunk, pkg),
+				pkg,
+			)
+		} else {
+			if len(tag) == 0 {
+				tag = cmt.PackageVersion(pkg)
+				if tag == "" {
+					ch <- response{pkg, tag, fmt.Errorf("could not find any tag for %q", pkg)}
+					return
+				}
+			}
+			env = append(env, "tag="+tag)
+			args = append(
+				args,
+				fmt.Sprintf("%s/%s/%s/%s", svnroot, svntags, pkg, tag),
+				pkg,
+			)
+		}
+		if g_checkout {
+			msg.Infof("checkout: %s (%s)\n", pkg, tag)
+			cmd := exec.Command("svn", args...)
+			cmd.Env = env
+			//cmd.Stdout = os.Stdout
+			//cmd.Stderr = os.Stderr
+			err = cmd.Run()
+			ch <- response{pkg, tag, err}
+			return
+		} else {
+			out := []string{tag, pkg}
+			if *g_recent {
+				var istrunk bool
+				head, err := cmt.LatestPackageTag(pkg)
+				if err != nil {
+					msg.Errorf(">>> %s\n", err)
+					istrunk = false
+					head = "NONE"
+				} else {
+					istrunk = svn_tag_is_trunk(pkg, head)
+				}
+				eq := "=="
+				switch istrunk {
+				case true:
+					eq = "=="
+				case false:
+					eq = "!="
+				}
+				out = append(
+					out,
+					fmt.Sprintf(" (most recent %s %s trunk)", head, eq),
+				)
+			}
+			fmt.Printf("%s\n", strings.Join(out, " "))
+			ch <- response{pkg, tag, nil}
+		}
 		return
 	}
 
