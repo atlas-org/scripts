@@ -223,8 +223,98 @@ func checkout(pkg string, ch chan response) {
 	}
 
 	// atlasoff packages
-	debugf("checkout: %s (%s)\n", pkg, tag)
-	ch <- response{pkg, tag, err}
+	if *g_head {
+		msg.Infof("checkout: %s (%s)\n", pkg, tag)
+		tag := ""
+		err := cmt.CheckOut(pkg, tag)
+		ch <- response{pkg, "HEAD", err}
+		return
+	}
+
+	if tag == "" {
+		tag = cmt.PackageVersion(pkg)
+		if tag == "" {
+			ch <- response{pkg, tag, fmt.Errorf("could not find any tag for %q", pkg)}
+			return
+		}
+
+	}
+
+	if g_checkout {
+		msg.Infof("checkout: %s (%s)\n", pkg, tag)
+		err := cmt.CheckOut(pkg, tag)
+		ch <- response{pkg, tag, err}
+		return
+	} else {
+		out := []string{tag, pkg}
+		if *g_recent {
+			var istrunk bool
+			head, err := cmt.LatestPackageTag(pkg)
+			if err != nil {
+				istrunk = false
+				head = "NONE"
+			} else {
+				istrunk = svn_tag_is_trunk(pkg, head)
+			}
+			eq := "=="
+			switch istrunk {
+			case true:
+				eq = "=="
+			case false:
+				eq = "!="
+			}
+			out = append(
+				out,
+				fmt.Sprintf(" (most recent %s %s trunk)", head, eq),
+			)
+		}
+		fmt.Printf("%s\n", strings.Join(out, " "))
+		ch <- response{pkg, tag, nil}
+	}
+}
+
+// svn_tag_is_trunk runs an SVN diff of pkg/tag with trunk
+// and returns true if tag matches with trunk
+func svn_tag_is_trunk(pkg, tag string) bool {
+	env := os.Environ()
+	svnroot := os.Getenv("SVNROOT")
+	if svnroot == "" {
+		msg.Errorf("SVNROOT not set\n")
+		panic(fmt.Errorf("SVNROOT not set"))
+	}
+
+	tag_url := ""
+	trunk_url := ""
+	if strings.HasPrefix(pkg, "Gaudi") {
+		gaudisvn := os.Getenv("GAUDISVN")
+		if gaudisvn == "" {
+			gaudisvn = "http://svnweb.cern.ch/guest/gaudi"
+		}
+		svnroot = strings.Join([]string{gaudisvn, "Gaudi"}, "/")
+		env = append(env, "SVNTRUNK=trunk")
+		env = append(env, "SVNTAGS=tags")
+		tag_url = strings.Join([]string{svnroot, "tags", pkg, tag}, "/")
+		trunk_url = strings.Join([]string{svnroot, "trunk", pkg}, "/")
+	} else {
+		tag_url = strings.Join([]string{svnroot, pkg, "tags", tag}, "/")
+		trunk_url = strings.Join([]string{svnroot, pkg, "trunk"}, "/")
+	}
+	env = append(env, "SVNROOT="+svnroot)
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	args := []string{"diff", tag_url, trunk_url}
+	cmd := exec.Command("svn", args...)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	if err != nil {
+		msg.Errorf("problem running svn diff:\n%v\n", err)
+		msg.Errorf("stderr:\n%v\n", string(stderr.Bytes()))
+		panic(err)
+	}
+
+	return len(stdout.Bytes()) == 0
 }
 
 // EOF
