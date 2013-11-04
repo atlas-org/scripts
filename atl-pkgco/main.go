@@ -115,9 +115,9 @@ func main() {
 	close(ch)
 
 	if len(errs) != 0 {
-		errorf("problem(s) checking out package(s):\n")
+		msg.Errorf("problem(s) checking out package(s):\n")
 		for _, err := range errs {
-			errorf("%s (%s): %v\n", err.pkg, err.tag, err.err)
+			msg.Errorf("%s (%s): %v\n", err.pkg, err.tag, err.err)
 		}
 		os.Exit(1)
 	}
