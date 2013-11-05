@@ -14,10 +14,35 @@ var g_dir = flag.String("d", ".", "directory to relocate the environment to")
 var g_fname = flag.String("f", "store.cmt", "path to file to load the environment from")
 var g_oname = flag.String("o", "", "shell file to hold the environment")
 var g_shell = flag.String("sh", "sh", "shell type (sh|csh)")
+var g_help = flag.Bool("h", false, "print help")
 
 func main() {
 	flag.Parse()
 
+	flag.Usage = func() {
+		bt := "`"
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		fmt.Fprintf(
+			os.Stderr,
+			`$ %s [options]
+
+ex:
+ $ eval %s%s -f my.setup.cmt%s
+ $ %s -f my.setup.cmt -o setup.sh && source ./setup.sh
+ $ %s -f my.setup.cmt -o setup.csh -sh=csh && source ./setup.csh
+
+options:
+`,
+			os.Args[0], bt, os.Args[0], bt, os.Args[0], os.Args[0],
+		)
+		flag.PrintDefaults()
+
+	}
+
+	if *g_help {
+		flag.Usage()
+		os.Exit(1)
+	}
 	if *g_verbose {
 		fmt.Fprintf(os.Stderr, "::: loading up a CMT environment...\n")
 	}
