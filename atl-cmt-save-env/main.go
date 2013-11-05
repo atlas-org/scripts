@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	gocmt "github.com/atlas-org/cmt"
 )
@@ -22,13 +23,14 @@ func main() {
 			`$ %s [options] ASETUP-TAGS
 
 ex:
+ $ %s             # no-arg: take env from shell
  $ %s rel1,devval
  $ %s 19.0.0
  $ %s -f my.setup.cmt 19.0.0
 
 options:
 `,
-			os.Args[0], os.Args[0], os.Args[0], os.Args[0],
+			os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0],
 		)
 		flag.PrintDefaults()
 
@@ -43,19 +45,11 @@ options:
 		fmt.Printf("::: setting up a CMT environment...\n")
 	}
 
-	tags := ""
-	switch flag.NArg() {
-	case 1:
-		tags = flag.Args()[0]
-	default:
-		fmt.Fprintf(os.Stderr, "%s needs an asetup-compatible set of tags\n", os.Args[0])
-		flag.Usage()
-		os.Exit(1)
-	}
-
+	tags := strings.Join(flag.Args(), " ")
 	setup, err := gocmt.NewSetup(tags, *g_verbose)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "**error** sourcing asetup: %v\n", err)
+		os.Exit(1)
 	}
 	defer setup.Delete()
 
