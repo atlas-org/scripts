@@ -187,8 +187,6 @@ func checkout(pkg string, ch chan response) {
 			msg.Infof("checkout: %s (%s)\n", pkg, tag)
 			cmd := exec.Command("svn", args...)
 			cmd.Env = env
-			//cmd.Stdout = os.Stdout
-			//cmd.Stderr = os.Stderr
 			err = cmd.Run()
 			ch <- response{pkg, tag, err}
 			return
