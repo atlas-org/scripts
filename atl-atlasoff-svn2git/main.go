@@ -141,6 +141,8 @@ func main() {
 	if !allgood {
 		os.Exit(1)
 	}
+
+	msg.Infof("::: atl-atlasoff-svn2git [done]\n")
 }
 
 // EOF
