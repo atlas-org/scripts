@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,13 +37,20 @@ func cnv(pkg string) error {
 	}
 	defer f.Close()
 
+	var out io.Writer
+	if *g_verbose {
+		out = io.MultiWriter(f, os.Stdout)
+	} else {
+		out = f
+	}
+
 	cmd := exec.Command("go-svn2git",
 		"-verbose",
 		"-revision", "1",
 		strings.Join([]string{svn, pkg}, "/"),
 	)
-	cmd.Stdout = f
-	cmd.Stderr = f
+	cmd.Stdout = out
+	cmd.Stderr = out
 	cmd.Dir = git_pkg
 	err = cmd.Run()
 	if err != nil {
@@ -54,6 +62,8 @@ func cnv(pkg string) error {
 }
 
 var g_pkglist = flag.String("f", "", "path to file containing packages to convert")
+var g_verbose = flag.Bool("v", false, "enable verbose output")
+var g_njobs = flag.Int("j", 4, "number of goroutines to spawn")
 
 func main() {
 	msg.Infof("::: atl-atlasoff-svn2git\n")
