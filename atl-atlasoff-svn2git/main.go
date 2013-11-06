@@ -18,10 +18,10 @@ var msg = logger.New("svn2git")
 
 const svn = "file:///data/binet/dev/atlasoff/svn"
 
-func cnv(pkg string) error {
+func cnv(pkg string, i, nmax int) error {
 	git_pkg := filepath.Join("atlasoff-git", pkg)
 	start := time.Now()
-	msg.Infof("converting [%s]...\n", pkg)
+	msg.Infof("[%04d/%04d] converting [%s]...\n", i, nmax, pkg)
 
 	err := os.MkdirAll(git_pkg, 0755)
 	if err != nil {
@@ -57,7 +57,7 @@ func cnv(pkg string) error {
 		msg.Errorf("could not run svn2git on package [%s]: %v\n", pkg, err)
 		return fmt.Errorf("problem running svn2git. logfile [%s]. %v\n", fname, err)
 	}
-	msg.Infof("converting [%s]... (%v)\n", pkg, time.Since(start))
+	msg.Infof("[%04d/%04d] converting [%s]... (%v)\n", i, nmax, pkg, time.Since(start))
 	return err
 }
 
@@ -68,6 +68,11 @@ var g_njobs = flag.Int("j", 4, "number of goroutines to spawn")
 func main() {
 	msg.Infof("::: atl-atlasoff-svn2git\n")
 	flag.Parse()
+
+	if *g_njobs <= 0 {
+		msg.Errorf("invalid number of goroutines (%d)\n", *g_njobs)
+		os.Exit(1)
+	}
 
 	err := os.MkdirAll("logs", 0755)
 	if err != nil {
@@ -109,16 +114,19 @@ func main() {
 		pkgs = append(pkgs, flag.Args()...)
 	}
 
+	npkgs := len(pkgs)
+	msg.Infof("# of goroutines: %d\n", *g_njobs)
+	msg.Infof("# of packages:   %d\n", npkgs)
 	msg.Debugf("pkgs: %v\n", pkgs)
 
-	throttle := make(chan struct{}, 10)
-	ch := make(chan error, 10)
-	for _, pkg := range pkgs {
-		go func(pkg string) {
+	throttle := make(chan struct{}, *g_njobs)
+	ch := make(chan error)
+	for i, pkg := range pkgs {
+		go func(pkg string, i int) {
 			throttle <- struct{}{}
-			ch <- cnv(pkg)
+			ch <- cnv(pkg, i, npkgs)
 			<-throttle
-		}(pkg)
+		}(pkg, i)
 	}
 
 	allgood := true
