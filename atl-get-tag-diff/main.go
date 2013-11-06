@@ -44,7 +44,8 @@ options:
 		new = flag.Args()[1]
 	}
 
-	diffs, err := cmt.TagDiff(old, new, *v)
+	display := true
+	diffs, err := cmt.TagDiff(old, new, display, *v)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "**error** %v\n", err)
 		os.Exit(1)
