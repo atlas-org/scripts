@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -17,6 +18,72 @@ import (
 var msg = logger.New("svn2git")
 
 const svn = "file:///data/binet/dev/atlasoff/svn"
+
+func get_branches(dir string, w io.Writer) ([]string, error) {
+	var branches []string
+	var err error
+	_, err = fmt.Fprintf(w, "### get list of branches for [%s]...\n", dir)
+	if err != nil {
+		return branches, err
+	}
+
+	{
+		cmd := exec.Command("git", "checkout", "master")
+		cmd.Dir = dir
+		cmd.Stderr = w
+		cmd.Stdout = w
+		err = cmd.Run()
+		if err != nil {
+			return branches, err
+		}
+	}
+
+	cmd := exec.Command("git", "branch", "-l")
+	cmd.Stderr = w
+	cmd.Dir = dir
+	bout, err := cmd.Output()
+	if err != nil {
+		return branches, err
+	}
+
+	for _, bline := range bytes.Split(bout, []byte("\n")) {
+		line := string(bytes.Trim(bline, " \r\t\n"))
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "* ") {
+			line = line[len("* "):]
+		}
+		branches = append(branches, line)
+	}
+	return branches, err
+}
+
+func get_tags(dir string, w io.Writer) ([]string, error) {
+	var tags []string
+	var err error
+	_, err = fmt.Fprintf(w, "### get list of tags for [%s]...\n", dir)
+	if err != nil {
+		return tags, err
+	}
+
+	cmd := exec.Command("git", "tag", "-l")
+	cmd.Stderr = w
+	cmd.Dir = dir
+	bout, err := cmd.Output()
+	if err != nil {
+		return tags, err
+	}
+
+	for _, bline := range bytes.Split(bout, []byte("\n")) {
+		line := string(bytes.Trim(bline, " \r\t\n"))
+		if line == "" {
+			continue
+		}
+		tags = append(tags, line)
+	}
+	return tags, err
+}
 
 func cnv(pkg string, i, nmax int) error {
 	git_pkg := filepath.Join("atlasoff-git", pkg)
@@ -57,6 +124,56 @@ func cnv(pkg string, i, nmax int) error {
 		msg.Errorf("could not run svn2git on package [%s]: %v\n", pkg, err)
 		return fmt.Errorf("problem running svn2git. logfile [%s]. %v\n", fname, err)
 	}
+
+	branches, err := get_branches(git_pkg, out)
+	if err != nil {
+		msg.Errorf("could not get list of branches for package [%s]: %v\n", pkg, err)
+		return err
+	}
+
+	tags, err := get_tags(git_pkg, out)
+	if err != nil {
+		msg.Errorf("could not get list of tags for package [%s]: %v\n", pkg, err)
+		return err
+	}
+
+	// relocate all files under `pkg`. e.g: under Control/AthenaKernel
+	for _, branch := range branches {
+		cmd := exec.Command(
+			"git", "filter-branch", "-f", "--tree-filter",
+			fmt.Sprintf("atl-atlasoff-svn2git-tree-filter %s", pkg),
+			"--tag-name-filter", "cat",
+			branch,
+		)
+		cmd.Stdout = out
+		cmd.Stderr = out
+		cmd.Dir = git_pkg
+		err = cmd.Run()
+		if err != nil {
+			msg.Errorf("could not run tree-filter for package [%s] and branch [%s]: %v\n",
+				pkg, branch, err,
+			)
+		}
+	}
+
+	for _, tag := range tags {
+		cmd := exec.Command(
+			"git", "filter-branch", "-f", "--tree-filter",
+			fmt.Sprintf("atl-atlasoff-svn2git-tree-filter %s", pkg),
+			"--tag-name-filter", "cat",
+			tag,
+		)
+		cmd.Stdout = out
+		cmd.Stderr = out
+		cmd.Dir = git_pkg
+		err = cmd.Run()
+		if err != nil {
+			msg.Errorf("could not run tree-filter for package [%s] and tag [%s]: %v\n",
+				pkg, tag, err,
+			)
+		}
+	}
+
 	msg.Infof("[%04d/%04d] converting [%s]... (%v)\n", i, nmax, pkg, time.Since(start))
 	return err
 }
@@ -67,6 +184,7 @@ var g_njobs = flag.Int("j", 4, "number of goroutines to spawn")
 
 func main() {
 	msg.Infof("::: atl-atlasoff-svn2git\n")
+	start := time.Now()
 	flag.Parse()
 
 	if *g_njobs <= 0 {
@@ -126,7 +244,7 @@ func main() {
 			throttle <- struct{}{}
 			ch <- cnv(pkg, i, npkgs)
 			<-throttle
-		}(pkg, i)
+		}(pkg, i+1)
 	}
 
 	allgood := true
@@ -139,10 +257,11 @@ func main() {
 	}
 
 	if !allgood {
+		msg.Infof("::: atl-atlasoff-svn2git [ERR] (%v)\n", time.Since(start))
 		os.Exit(1)
 	}
 
-	msg.Infof("::: atl-atlasoff-svn2git [done]\n")
+	msg.Infof("::: atl-atlasoff-svn2git [done] (%v)\n", time.Since(start))
 }
 
 // EOF
