@@ -221,7 +221,7 @@ func checkout(pkg string, ch chan response) {
 
 	// atlasoff packages
 	if *g_head {
-		msg.Infof("checkout: %s (%s)\n", pkg, tag)
+		msg.Infof("checkout: %s (%s)\n", pkg, "trunk")
 		tag := ""
 		err := cmt.CheckOut(pkg, tag)
 		ch <- response{pkg, "HEAD", err}
