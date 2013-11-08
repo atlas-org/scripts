@@ -85,6 +85,9 @@ func main() {
 			if strings.HasPrefix(txt, "#") {
 				continue
 			}
+			if txt == "" {
+				continue
+			}
 			pkgs = append(pkgs, scan.Text())
 		}
 		err = scan.Err()
@@ -100,9 +103,10 @@ func main() {
 	if nch > 8 {
 		nch = 8
 	}
-	ch := make(chan response, len(pkgs))
+	throttle := make(chan struct{}, nch)
+	ch := make(chan response)
 	for _, pkg := range pkgs {
-		go checkout(pkg, ch)
+		go checkout(pkg, ch, throttle)
 	}
 
 	errs := []response{}
@@ -123,8 +127,11 @@ func main() {
 	}
 }
 
-func checkout(pkg string, ch chan response) {
+func checkout(pkg string, ch chan response, throttle chan struct{}) {
 	var err error
+	throttle <- struct{}{}
+	defer func() { <-throttle }()
+
 	tag := ""
 	// if - in pkg, tag was given
 	if strings.Count(pkg, "-") > 0 {
