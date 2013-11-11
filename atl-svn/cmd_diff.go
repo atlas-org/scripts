@@ -1,11 +1,6 @@
-// atl-svn-diff is a quick and dirty script to get the diff between 2 tags in atlasoff
-//
-// ex:
-//  $ atl-svn-diff AthenaKernel-00-01-02 Control/AthenaKernel-00-02-02
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,43 +8,42 @@ import (
 	"strings"
 
 	gocmt "github.com/atlas-org/cmt"
+	"github.com/gonuts/commander"
+	"github.com/gonuts/flag"
 	"github.com/gonuts/logger"
 )
 
-var msg = logger.New("avn")
-
-func init() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		fmt.Fprintf(
-			os.Stderr,
-			`$ %s OLD-TAG NEW-TAG
+func atl_make_cmd_diff() *commander.Command {
+	cmd := &commander.Command{
+		Run:       atl_run_cmd_diff,
+		UsageLine: "diff [options] OLD-TAG NEW-TAG",
+		Short:     "diff between 2 tags or revs",
+		Long: `
+diff displays the diff between 2 svn tags or revs.
 
 ex:
- $ %s AthenaServices-00-01-02 Control/AthenaServices-00-01-03
- $ %s AthenaServices-00-01-02 AthenaServices-00-01-03
- $ %s AthenaServices-00-01-02 AthenaServices-HEAD
- $ %s AthenaServices-00-01-02 AthenaServices-trunk
-
-options:
+ $ atl-svn diff AthenaServices-00-01-02 Control/AthenaServices-00-01-03
+ $ atl-svn diff AthenaServices-00-01-02 AthenaServices-00-01-03
+ $ atl-svn diff AthenaServices-00-01-02 AthenaServices-HEAD
+ $ atl-svn diff AthenaServices-00-01-02 AthenaServices-trunk
 `,
-			os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0],
-		)
-		flag.PrintDefaults()
+		Flag: *flag.NewFlagSet("atl-svn-diff", flag.ExitOnError),
 	}
+	return cmd
 }
 
-func main() {
-	flag.Parse()
-
-	if flag.NArg() < 2 {
-		msg.Errorf("you need to give *2* tags to %s\n", os.Args[0])
+func atl_run_cmd_diff(cmd *commander.Command, args []string) {
+	var err error
+	n := "atl-svn-" + cmd.Name()
+	msg := logger.New(n)
+	if len(args) != 2 {
+		msg.Errorf("you need to give *2* tags to %s\n", n)
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	old_tag := flag.Args()[0]
-	new_tag := flag.Args()[1]
+	old_tag := args[0]
+	new_tag := args[1]
 
 	cmt, err := gocmt.New(nil)
 	if err != nil {
@@ -110,10 +104,10 @@ func main() {
 		url_new = fmt.Sprintf("%s/%s/%s", svnroot, p_new.Name, "trunk")
 	}
 
-	cmd := exec.Command("svn", "diff", url_old, url_new)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	svn := exec.Command("svn", "diff", url_old, url_new)
+	svn.Stdout = os.Stdout
+	svn.Stderr = os.Stderr
+	err = svn.Run()
 	if err != nil {
 		msg.Errorf("error running svn-diff: %v\n", err)
 		os.Exit(1)
@@ -121,4 +115,3 @@ func main() {
 
 }
 
-// EOF
