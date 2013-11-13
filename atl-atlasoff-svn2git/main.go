@@ -90,6 +90,15 @@ func cnv(pkg string, i, nmax int) error {
 	start := time.Now()
 	msg.Infof("[%04d/%04d] converting [%s]...\n", i, nmax, pkg)
 
+	fstatus := filepath.Join("logs", strings.Replace(git_pkg, "/", "-", -1)+".status")
+	if _, err := os.Stat(fstatus); err == nil {
+		// already done.
+		msg.Infof("[%04d/%04d] converting [%s]... (%v)\n", i, nmax, pkg, time.Since(start))
+		return err
+	}
+
+	_ = os.RemoveAll(git_pkg)
+
 	err := os.MkdirAll(git_pkg, 0755)
 	if err != nil {
 		msg.Errorf("could not create directory [%s]: %v\n", git_pkg, err)
@@ -172,6 +181,18 @@ func cnv(pkg string, i, nmax int) error {
 				pkg, tag, err,
 			)
 		}
+	}
+
+	ff, err := os.Create(fstatus)
+	if err != nil {
+		msg.Errorf("could not create status file [%s]: %v\n", fstatus, err)
+		return err
+	}
+	defer ff.Close()
+	_, err = ff.WriteString("ok\n")
+	if err != nil {
+		msg.Errorf("could not fill status file [%s]: %v\n", fstatus, err)
+		return err
 	}
 
 	msg.Infof("[%04d/%04d] converting [%s]... (%v)\n", i, nmax, pkg, time.Since(start))
