@@ -44,6 +44,7 @@ func main() {
 		err = os.Rename(file, filepath.Join(tmpdir, file))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "**error**: %v\n", err)
+			os.Exit(1)
 		}
 	}
 
