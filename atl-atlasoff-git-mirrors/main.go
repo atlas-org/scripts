@@ -65,17 +65,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// reqs := []Request{
-	// 	{
-	// 		Url: "https://:@git.cern.ch/kerberos/atlas-gaudi",
-	// 		Dir: "/afs/cern.ch/user/b/binet/dev/repos/mirrors/gaudi.git",
-	// 	},
-	// 	{
-	// 		Url: "https://:@git.cern.ch/kerberos/atlas-lcg",
-	// 		Dir: "/afs/cern.ch/user/b/binet/dev/repos/mirrors/lcg.git",
-	// 	},
-	// }
-
 	resp := make(chan Response)
 	for _, req := range reqs {
 		go do_mirror(req, resp)
