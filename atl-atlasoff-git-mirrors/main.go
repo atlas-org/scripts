@@ -11,6 +11,7 @@ import (
 
 var msg = logger.New("atl-mirror")
 var g_fname = flag.String("f", "mirrors.json", "path to file containing a list of mirrors to sync")
+var g_njobs = flag.Int("j", 4, "number of concurrent jobs to launch")
 
 type Request struct {
 	Url string // git URI of mirror
@@ -66,8 +67,13 @@ func main() {
 	}
 
 	resp := make(chan Response)
+	throttle := make(chan struct{}, *g_njobs)
 	for _, req := range reqs {
-		go do_mirror(req, resp)
+		go func(req Request) {
+			throttle <- struct{}{}
+			defer func() { <-throttle }()
+			do_mirror(req, resp)
+		}(req)
 	}
 
 	for _ = range reqs {
