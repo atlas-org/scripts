@@ -162,6 +162,7 @@ func cnv(pkg string, i, nmax int) error {
 			msg.Errorf("could not run tree-filter for package [%s] and branch [%s]: %v\n",
 				pkg, branch, err,
 			)
+			return err
 		}
 	}
 
@@ -180,6 +181,7 @@ func cnv(pkg string, i, nmax int) error {
 			msg.Errorf("could not run tree-filter for package [%s] and tag [%s]: %v\n",
 				pkg, tag, err,
 			)
+			return err
 		}
 	}
 
