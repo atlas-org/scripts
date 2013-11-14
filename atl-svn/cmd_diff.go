@@ -114,4 +114,3 @@ func atl_run_cmd_diff(cmd *commander.Command, args []string) {
 	}
 
 }
-
