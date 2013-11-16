@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 )
 
-var g_odir = flag.String("o", "/afs/cern.ch/atlas/offline/external/Go", "output directory where to install the go rungime")
+var g_odir = flag.String("o", "/afs/cern.ch/atlas/offline/external/Go", "output directory where to install the go runtime")
 var g_verbose = flag.Bool("v", false, "enable verbose printouts")
 var g_mode = flag.String("mode", "curl", "what mode to use (go|curl)")
 
