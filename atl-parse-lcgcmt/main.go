@@ -6,12 +6,55 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gonuts/logger"
 )
 
 var msg = logger.New("lcgcmt")
+
+type Release struct {
+	Toolchain Toolchain
+	PackageDb PackageDb
+}
+
+func (rel *Release) String() string {
+	lines := make([]string, 0, 32)
+	lines = append(
+		lines,
+		"Release{",
+		fmt.Sprintf("\tToolchain: %#v,", rel.Toolchain),
+		fmt.Sprintf("\tPackages: ["),
+	)
+
+	keys := make([]string, 0, len(rel.PackageDb))
+	for id := range rel.PackageDb {
+		keys = append(keys, id)
+	}
+	sort.Strings(keys)
+
+	for _, id := range keys {
+		pkg := rel.PackageDb[id]
+		lines = append(
+			lines,
+			fmt.Sprintf("\t\t%v-%v deps=%v,", pkg.Name, pkg.Version, pkg.Deps),
+		)
+	}
+	lines = append(
+		lines,
+		"\t],",
+		"}",
+	)
+	return strings.Join(lines, "\n")
+}
+
+type Toolchain struct {
+	Name    string
+	Version string
+}
+
+type PackageDb map[string]*Package
 
 type Package struct {
 	Id        string
@@ -26,7 +69,10 @@ type Package struct {
 func newPackage(fields []string) (*Package, error) {
 	const NFIELDS = 7
 	if len(fields) != NFIELDS {
-		return nil, fmt.Errorf("invalid fields size (got %d. expected %s)", len(fields), NFIELDS)
+		return nil, fmt.Errorf(
+			"invalid fields size (got %d. expected %d): %#v",
+			len(fields), NFIELDS, fields,
+		)
 	}
 
 	pkg := &Package{
@@ -89,6 +135,10 @@ func main() {
 	handle_err(err)
 	defer f.Close()
 
+	release := &Release{
+		PackageDb: make(PackageDb),
+	}
+
 	scan := bufio.NewScanner(f)
 	for scan.Scan() {
 		line := scan.Text()
@@ -99,14 +149,35 @@ func main() {
 		if line[0] == '#' {
 			continue
 		}
+		if strings.HasPrefix(line, "COMPILER: ") {
+			fields := strings.Split(line, " ")
+			name := fields[1]
+			vers := fields[2]
+			release.Toolchain = Toolchain{Name: name, Version: vers}
+			continue
+		}
+
 		fields := strings.Split(line, ";")
 		pkg, err := newPackage(fields)
 		handle_err(err)
 		msg.Debugf("%v (%v) %v\n", pkg.Name, pkg.Version, pkg.Deps)
+
+		if _, exists := release.PackageDb[pkg.Id]; exists {
+			handle_err(
+				fmt.Errorf("package %v already in package-db:\nold: %#v\nnew: %#v\n",
+					pkg.Id,
+					release.PackageDb[pkg.Id],
+					pkg,
+				),
+			)
+		}
+		release.PackageDb[pkg.Id] = pkg
 	}
 
 	err = scan.Err()
 	if err != nil && err != io.EOF {
 		handle_err(err)
 	}
+
+	msg.Infof("%v\n", release)
 }
