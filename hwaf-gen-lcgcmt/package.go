@@ -13,17 +13,16 @@ type Toolchain struct {
 type PackageDb map[string]*Package
 
 type Package struct {
-	Id        string
-	Name      string
-	Version   string
-	ShortDest string
-	FullDest  string
-	Hash      string
-	Deps      []string
+	Id      string   // package id
+	Name    string   // name of the package
+	Version string   // native version of the package
+	Dest    string   // name of the directory where that package is installed
+	Hash    string   // unique id
+	Deps    []string // list of dependencies (package.Id's)
 }
 
 func newPackage(fields []string) (*Package, error) {
-	const NFIELDS = 7
+	const NFIELDS = 6
 	if len(fields) != NFIELDS {
 		return nil, fmt.Errorf(
 			"invalid fields size (got %d. expected %d): %#v",
@@ -32,21 +31,20 @@ func newPackage(fields []string) (*Package, error) {
 	}
 
 	pkg := &Package{
-		Id:        fields[0],
-		Name:      fields[1],
-		Version:   fields[2],
-		ShortDest: fields[4],
-		FullDest:  fields[5],
-		Hash:      fields[3],
-		Deps:      make([]string, 0),
+		Id:      fields[0],
+		Name:    fields[1],
+		Version: fields[2],
+		Dest:    fields[4],
+		Hash:    fields[3],
+		Deps:    make([]string, 0),
 	}
 	id := fields[1] + "-" + fields[3]
 	if id != pkg.Id {
 		return nil, fmt.Errorf("inconsistent fields (id=%v. name+id=%v)", pkg.Id, id)
 	}
 
-	if fields[6] != "" {
-		deps := strings.Split(fields[6], ",")
+	if fields[5] != "" {
+		deps := strings.Split(fields[5], ",")
 		for _, dep := range deps {
 			dep = strings.Trim(dep, " \r\n\t")
 			if dep != "" {
