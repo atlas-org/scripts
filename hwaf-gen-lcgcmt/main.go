@@ -9,6 +9,7 @@ import (
 )
 
 var msg = logger.New("lcgcmt")
+var g_out = flag.String("o", "hscript.py", "path to hscript.py file to generate")
 
 func init() {
 	flag.Usage = func() {
@@ -46,5 +47,12 @@ func main() {
 
 	release, err := newRelease(f)
 	handle_err(err)
-	msg.Infof("%v\n", release)
+	msg.Debugf("%v\n", release)
+
+	out, err := os.Create(*g_out)
+	handle_err(err)
+	defer out.Close()
+
+	err = render(release, out)
+	handle_err(err)
 }
