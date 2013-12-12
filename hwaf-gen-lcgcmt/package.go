@@ -2,44 +2,8 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
-
-type Release struct {
-	Toolchain Toolchain
-	PackageDb PackageDb
-}
-
-func (rel *Release) String() string {
-	lines := make([]string, 0, 32)
-	lines = append(
-		lines,
-		"Release{",
-		fmt.Sprintf("\tToolchain: %#v,", rel.Toolchain),
-		fmt.Sprintf("\tPackages: ["),
-	)
-
-	keys := make([]string, 0, len(rel.PackageDb))
-	for id := range rel.PackageDb {
-		keys = append(keys, id)
-	}
-	sort.Strings(keys)
-
-	for _, id := range keys {
-		pkg := rel.PackageDb[id]
-		lines = append(
-			lines,
-			fmt.Sprintf("\t\t%v-%v deps=%v,", pkg.Name, pkg.Version, pkg.Deps),
-		)
-	}
-	lines = append(
-		lines,
-		"\t],",
-		"}",
-	)
-	return strings.Join(lines, "\n")
-}
 
 type Toolchain struct {
 	Name    string
