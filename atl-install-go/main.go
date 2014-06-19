@@ -29,9 +29,9 @@ func curl_download(version string, platform [2]string) error {
 		return err
 	}
 
-	// https://go.googlecode.com/files/go1.1.2.linux-amd64.tar.gz
+	// http://golang.org/dl/go1.2.2.linux-amd64.tar.gz
 	url := fmt.Sprintf(
-		"https://go.googlecode.com/files/go%s.%s-%s.tar.gz",
+		"http://golang.org/dl/go%s.%s-%s.tar.gz",
 		version,
 		platform[0],
 		platform[1],
